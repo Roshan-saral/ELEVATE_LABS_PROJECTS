@@ -3,7 +3,6 @@ import requests
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta, timezone
-from geopy.geocoders import Nominatim
 import folium
 from streamlit_folium import st_folium
 import math
@@ -66,6 +65,7 @@ h2 {
 }
 
 /* 4. Custom Card Styling (Sleek, Lifted Effect) - Increased Polish */
+/* This is the Flash Card styling */
 div[data-testid="stMetric"] > div {
     background-color: #1F2536; 
     padding: 20px 25px; /* Adjust padding for better card fit */
@@ -77,7 +77,7 @@ div[data-testid="stMetric"] > div {
 div[data-testid="stMetric"] > div:hover {
     background-color: #283042;
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.7);
-    transform: translateY(-2px); 
+    transform: translateY(-2px); /* Lifted effect */
 }
 
 /* 5. Metric Value and Label Styling */
@@ -210,9 +210,8 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("✅ **Source:** OpenWeatherMap API")
 st.sidebar.markdown(f"💾 **Cache:** Firebase Firestore ({st.session_state.get('db_status', 'Initializing...')})")
 
-# ---------------- CORE FUNCTIONS ----------------
+# ---------------- CORE DATA FUNCTIONS ----------------
 
-# Removed @st.cache_data from this function to let the Firebase logic control the refresh
 def get_current_weather(city_name):
     """Fetches current weather, calculates Heat Index, and caches data."""
     if API_KEY == "YOUR_OPENWEATHER_API_KEY":
@@ -315,17 +314,224 @@ def get_historical_data(city_name, days=7):
         st.error(f"❌ Failed to fetch historical data: {e}")
         return None
 
-# ---------------- HEADER ----------------
+# ---------------- PLOTLY CONFIG (Reusable) ----------------
+PLOTLY_CONFIG = dict(xaxis_title="Date/Time (UTC)", yaxis_title="Value", hovermode="x unified", legend_title="", template='plotly_dark')
+
+# ---------------- DISPLAY FUNCTIONS (Cleaned Modules) ----------------
+
+def display_current_metrics(weather, df_history, city):
+    """Displays the current weather status, icon, and the four key metric cards (Flash Cards)."""
+    st.markdown("## ☀️ Current Environmental Metrics & Drilldown")
+    
+    col_status, col_cards = st.columns([1, 4])
+    
+    # Icon and Status
+    with col_status:
+        icon_url = f"http://openweathermap.org/img/wn/{weather['icon']}@4x.png"
+        st.image(icon_url, width=150) 
+        st.markdown(f"<p style='text-align:center; font-size: 1.6em; font-weight: 800; color: #F0F2F6;'>{weather['condition']}</p>", unsafe_allow_html=True)
+
+    # Metrics Column (Flashcards)
+    col_card_1, col_card_2, col_card_3, col_card_4 = col_cards.columns(4)
+    
+    # CARD 1: Air Temperature
+    with col_card_1:
+        st.metric("🌡 Air Temperature", f"{weather['temperature']:.1f} °C")
+        with st.expander("Show 24h Trend"):
+            if df_history is not None and not df_history.empty:
+                df_24h = df_history[df_history['timestamp'] >= datetime.now(timezone.utc) - timedelta(hours=24)]
+                if not df_24h.empty:
+                    try:
+                        fig_mini = px.line(df_24h, x='timestamp', y='temperature', 
+                                        height=200, template='plotly_dark')
+                        fig_mini.update_layout(showlegend=False, margin=dict(t=20, b=20, l=20, r=20), 
+                                            xaxis_title=None, yaxis_title=None)
+                        fig_mini.update_traces(line=dict(color="#FF4560", width=3, shape='spline'))
+                        st.plotly_chart(fig_mini, use_container_width=True, config={'displayModeBar': False})
+                    except Exception as e:
+                        st.caption(f"Error plotting 24h trend: {e}")
+                else:
+                    st.caption("Not enough data points in the last 24 hours.")
+            else:
+                st.caption("Not enough history for 24h trend.")
+
+    # CARD 2: Apparent Temp
+    with col_card_2:
+        delta_temp = weather['heat_index'] - weather['temperature']
+        st.metric("🔥 Apparent Temp", 
+                    f"{weather['heat_index']:.1f} °C", 
+                    delta=f"{delta_temp:+.1f} °C vs Air Temp", 
+                    delta_color="normal")
+        with st.expander("What is Apparent Temp?"):
+            st.markdown("**Feels Like:** This metric is the Heat Index, which shows what the temperature *feels* like when considering high humidity. It's an important measure of thermal comfort and health risk.")
+            st.markdown(f"**Current Humidity Factor:** {weather['humidity']} %")
+
+    # CARD 3: Humidity
+    with col_card_3:
+        st.metric("💧 Relative Humidity", f"{weather['humidity']} %")
+        with st.expander("Humidity Analysis"):
+            st.markdown(f"**Saturation:** The air currently holds {weather['humidity']}% of the maximum moisture it can hold at this temperature. High values lead to muggy conditions.")
+            st.markdown("Relative Humidity is key for predicting fog, dew, and precipitation risk.")
+
+    # CARD 4: Wind
+    with col_card_4:
+        wind_kmh = weather['wind_speed'] * 3.6
+        st.metric("💨 Wind Velocity", f"{weather['wind_speed']:.1f} m/s")
+        with st.expander("Wind Details"):
+            st.markdown(f"**Speed:** {wind_kmh:.1f} km/h")
+            st.markdown(f"**Classification:** Light to Moderate Breeze (depending on speed).")
+    
+    st.markdown("---")
+
+def display_forecast_charts(df_forecast, plot_config):
+    """Displays 5-day forecast charts (Temperature, Humidity, and 3D plot with tilting)."""
+    st.markdown("## 📊 Forecast & Trend Analysis")
+    
+    if df_forecast is not None and not df_forecast.empty: 
+        chart_row1_col1, chart_row1_col2 = st.columns(2)
+        
+        # --- Temperature Chart ---
+        try:
+            with chart_row1_col1:
+                fig_temp = px.line(df_forecast, x='dt', y='Temperature', title="5-Day Temperature Forecast", markers=True)
+                fig_temp.update_traces(line=dict(color="#FF4560", width=4, shape='spline'), mode='lines+markers') 
+                fig_temp.update_layout(**plot_config, yaxis_title="Temp (°C)")
+                st.plotly_chart(fig_temp, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error plotting Temperature Forecast: {e}")
+
+        # --- Humidity Chart ---
+        try:
+            with chart_row1_col2:
+                fig_hum = px.line(df_forecast, x='dt', y='Humidity', title="5-Day Humidity Forecast", markers=True)
+                fig_hum.update_traces(line=dict(color="#4BBFE3", width=4, shape='spline'), mode='lines+markers') 
+                fig_hum.update_layout(**plot_config, yaxis_title="Humidity (%)")
+                st.plotly_chart(fig_hum, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error plotting Humidity Forecast: {e}")
+
+        # --- 3D Visualization Section (Tilting) ---
+        st.markdown("## 🌪 3D Forecast Space: Temp, Humidity, and Time")
+        try:
+            # Prepare the data: Use a numeric representation of time for the X axis
+            start_time = df_forecast['dt'].min()
+            df_forecast['Time_Hours'] = (df_forecast['dt'] - start_time).dt.total_seconds() / 3600
+            
+            # Create a 3D Scatter Plot (This supports interactive tilting!)
+            fig_3d = px.scatter_3d(
+                df_forecast, 
+                x='Time_Hours', 
+                y='Temperature', 
+                z='Humidity',
+                color='Temperature',
+                size='Humidity',
+                title='5-Day Forecast Visualization (Time vs Temp vs Humidity)',
+                labels={'Time_Hours': 'Time (Hours from Start)', 'Temperature': 'Temp (°C)', 'Humidity': 'Humidity (%)'},
+                template='plotly_dark',
+                height=700
+            )
+            
+            fig_3d.update_layout(
+                scene=dict(
+                    xaxis_title='Time (Hours)',
+                    yaxis_title='Temperature (°C)',
+                    zaxis_title='Humidity (%)',
+                    camera=dict(
+                        up=dict(x=0, y=0, z=1), 
+                        center=dict(x=0, y=0, z=0), 
+                        eye=dict(x=1.5, y=1.5, z=1.5)
+                    )
+                )
+            )
+
+            st.plotly_chart(fig_3d, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error plotting 3D Forecast: {e}")
+
+    else:
+        st.info("No forecast data available to display charts.")
+    
+    st.markdown("---")
+
+def display_historical_trends(df_history, plot_config):
+    """Displays historical data charts."""
+    st.markdown("## 📈 Historical Trend (Past 7 Days)")
+
+    if df_history is not None and not df_history.empty:
+        h_col1, h_col2 = st.columns(2)
+        
+        # --- Historical Temperature Chart ---
+        try:
+            with h_col1:
+                fig_hist_temp = px.line(df_history, x='timestamp', y=['temperature', 'heat_index'],
+                                            title="Historical Air Temp vs. Apparent Temp", markers=True)
+                
+                # Naming traces for clarity
+                fig_hist_temp.for_each_trace(lambda t: t.update(name='Apparent Temp (HI)') if t.name == 'heat_index' else t.update(name='Air Temp'))
+                fig_hist_temp.update_traces(selector=dict(name='Air Temp'), line=dict(color="#FF4560", width=4, dash='solid'))
+                fig_hist_temp.update_traces(selector=dict(name='Apparent Temp (HI)'), line=dict(color="#FFA500", width=2, dash='dot'))
+
+                fig_hist_temp.update_layout(**plot_config, yaxis_title="Temp (°C)")
+                st.plotly_chart(fig_hist_temp, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error plotting Historical Temperature: {e}")
+
+        # --- Historical Humidity Chart ---
+        try:
+            with h_col2:
+                fig_hist_hum = px.line(df_history, x='timestamp', y='humidity',
+                                            title="Historical Humidity Trend", markers=True)
+                fig_hist_hum.update_traces(line=dict(color="#00CED1", width=4, shape='spline'), mode='lines+markers') 
+                fig_hist_hum.update_layout(**plot_config, yaxis_title="Humidity (%)")
+                st.plotly_chart(fig_hist_hum, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error plotting Historical Humidity: {e}")
+            
+    elif db:
+        st.info("No sufficient historical data yet. Data logging began with the first successful fetch.")
+    else:
+        st.warning("Historical data is unavailable because the Firebase database is disabled.")
+    
+    st.markdown("---")
+
+
+def display_map(weather):
+    """Displays the city location on a Folium map."""
+    st.markdown("## 📍 Geographic Location")
+    
+    lat, lon = weather['lat'], weather['lon']
+    
+    map_col1, map_col2, map_col3 = st.columns([0.5, 3, 0.5])
+    
+    with map_col2:
+        m = folium.Map(location=[lat, lon], zoom_start=11, tiles="cartodbdarkmatter") 
+        
+        folium.CircleMarker(
+            [lat, lon], 
+            radius=15, 
+            color="#FF4560", 
+            fill=True,
+            fill_color="#FF4560",
+            fill_opacity=0.7,
+            popup=f"**{weather['city']}**<br>Temp: {weather['temperature']:.1f}°C"
+        ).add_to(m)
+        
+        st_folium(m, width=900, height=450)
+    
+    st.markdown("---")
+
+
+# ---------------- MAIN APPLICATION LOGIC ----------------
+
 # H1 is styled with neon effect in the CSS block
 st.markdown(f"<h1>✨ Global Weather Insights Dashboard</h1>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align:center;color:#B0B0C4; font-size: 1.2em;'>**Live Monitoring** for: **{city.title()}**</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ---------------- DISPLAY WEATHER ----------------
 if city:
     weather = None
     
-    # 1. Firebase Cache Logic
+    # --- 1. Data Retrieval Logic (Cache/Fetch) ---
     if db:
         doc = weather_collection.document(city.lower()).get()
         
@@ -347,204 +553,22 @@ if city:
             if weather:
                 st.success("✅ Initial data fetched and cached successfully.")
     else:
-        # 2. No DB Logic (Direct Fetch)
+        # No DB Logic (Direct Fetch)
         with st.spinner(f"🌐 **Live Fetch:** Retrieving real-time data for {city.title()}..."):
             weather = get_current_weather(city)
         if weather:
             st.warning("⚠️ Database disabled. Showing live data without history or persistent caching.")
 
-
+    # --- 2. Display Components ---
     if weather:
-        
-        # --- Current Conditions Section ---
-        st.markdown("## ☀️ Current Environmental Metrics & Drilldown")
-        
-        # Split into Status/Icon column and Metrics column
-        col_status, col_cards = st.columns([1, 4])
-        
-        # Icon and Status (Bigger Icon for visual impact)
-        with col_status:
-            icon_url = f"http://openweathermap.org/img/wn/{weather['icon']}@4x.png"
-            st.image(icon_url, width=150) 
-            st.markdown(f"<p style='text-align:center; font-size: 1.6em; font-weight: 800; color: #F0F2F6;'>{weather['condition']}</p>", unsafe_allow_html=True)
-
-        # Metrics Column - Split into 4 for the main metrics (Flashcard style)
         df_history = get_historical_data(city, days=7)
-        col_card_1, col_card_2, col_card_3, col_card_4 = col_cards.columns(4)
-        
-        # CARD 1: Air Temperature
-        with col_card_1:
-            st.metric("🌡 Air Temperature", f"{weather['temperature']:.1f} °C")
-            with st.expander("Show 24h Trend"):
-                if df_history is not None and not df_history.empty:
-                    df_24h = df_history[df_history['timestamp'] >= datetime.now(timezone.utc) - timedelta(hours=24)]
-                    if not df_24h.empty: # <--- ADDED CHECK
-                        fig_mini = px.line(df_24h, x='timestamp', y='temperature', 
-                                           height=200, template='plotly_dark')
-                        fig_mini.update_layout(showlegend=False, margin=dict(t=20, b=20, l=20, r=20), 
-                                               xaxis_title=None, yaxis_title=None)
-                        fig_mini.update_traces(line=dict(color="#FF4560", width=3, shape='spline'))
-                        st.plotly_chart(fig_mini, use_container_width=True, config={'displayModeBar': False})
-                    else:
-                        st.caption("Not enough data points in the last 24 hours.") # <--- UPDATED CAPTION
-                else:
-                    st.caption("Not enough history for 24h trend.")
-
-        # CARD 2: Apparent Temp
-        with col_card_2:
-            delta_temp = weather['heat_index'] - weather['temperature']
-            st.metric("🔥 Apparent Temp", 
-                        f"{weather['heat_index']:.1f} °C", 
-                        delta=f"{delta_temp:+.1f} °C vs Air Temp", 
-                        delta_color="normal")
-            with st.expander("What is Apparent Temp?"):
-                st.markdown("**Feels Like:** This metric is the Heat Index, which shows what the temperature *feels* like when considering high humidity. It's an important measure of thermal comfort and health risk.")
-                st.markdown(f"**Current Humidity Factor:** {weather['humidity']} %")
-
-        # CARD 3: Humidity
-        with col_card_3:
-            st.metric("💧 Relative Humidity", f"{weather['humidity']} %")
-            with st.expander("Humidity Analysis"):
-                st.markdown(f"**Saturation:** The air currently holds {weather['humidity']}% of the maximum moisture it can hold at this temperature. High values lead to muggy conditions.")
-                st.markdown("Relative Humidity is key for predicting fog, dew, and precipitation risk.")
-
-        # CARD 4: Wind
-        with col_card_4:
-            st.metric("💨 Wind Velocity", f"{weather['wind_speed']:.1f} m/s")
-            with st.expander("Wind Details"):
-                # Simple conversion to km/h for different units
-                wind_kmh = weather['wind_speed'] * 3.6
-                st.markdown(f"**Speed:** {wind_kmh:.1f} km/h")
-                # Placeholder for direction, as OWM often provides degrees only
-                st.markdown(f"**Classification:** Light to Moderate Breeze (depending on speed).")
-        
-        st.markdown("---")
-
-        # --- Forecast & Historical Data Section ---
-        
-        st.markdown("## 📊 Forecast & Trend Analysis")
-
         df_forecast = get_forecast(city)
 
-        chart_row1_col1, chart_row1_col2 = st.columns(2)
-        
-        # Plotly Configuration: Use a single config for consistency
-        plot_config = dict(xaxis_title="Date/Time (UTC)", yaxis_title="Value", hovermode="x unified", legend_title="", template='plotly_dark')
-
-        # Check if df_forecast is valid AND not empty before plotting
-        if df_forecast is not None and not df_forecast.empty: # <--- FIX APPLIED HERE
-            
-            with chart_row1_col1:
-                fig_temp = px.line(df_forecast, x='dt', y='Temperature', title="5-Day Temperature Forecast", markers=True)
-                fig_temp.update_traces(line=dict(color="#FF4560", width=4, shape='spline'), mode='lines+markers') 
-                fig_temp.update_layout(**plot_config, yaxis_title="Temp (°C)")
-                st.plotly_chart(fig_temp, use_container_width=True)
-
-            with chart_row1_col2:
-                fig_hum = px.line(df_forecast, x='dt', y='Humidity', title="5-Day Humidity Forecast", markers=True)
-                fig_hum.update_traces(line=dict(color="#4BBFE3", width=4, shape='spline'), mode='lines+markers') 
-                fig_hum.update_layout(**plot_config, yaxis_title="Humidity (%)")
-                st.plotly_chart(fig_hum, use_container_width=True)
-
-            
-            # --- NEW: 3D Visualization Section ---
-            st.markdown("## 🌪 3D Forecast Space: Temp, Humidity, and Time")
-            
-            # Prepare the data: Use a numeric representation of time for the X axis
-            start_time = df_forecast['dt'].min()
-            df_forecast['Time_Hours'] = (df_forecast['dt'] - start_time).dt.total_seconds() / 3600
-            
-            # Create a 3D Scatter Plot
-            fig_3d = px.scatter_3d(
-                df_forecast, 
-                x='Time_Hours', 
-                y='Temperature', 
-                z='Humidity',
-                color='Temperature', # Color dots by Temperature
-                size='Humidity',     # Size dots by Humidity
-                title='5-Day Forecast Visualization (Time vs Temp vs Humidity)',
-                labels={'Time_Hours': 'Time (Hours from Start)', 'Temperature': 'Temp (°C)', 'Humidity': 'Humidity (%)'},
-                template='plotly_dark',
-                height=700
-            )
-            
-            # Customize layout for better 3D viewing
-            fig_3d.update_layout(
-                scene=dict(
-                    xaxis_title='Time (Hours)',
-                    yaxis_title='Temperature (°C)',
-                    zaxis_title='Humidity (%)',
-                    camera=dict(
-                        up=dict(x=0, y=0, z=1), 
-                        center=dict(x=0, y=0, z=0), 
-                        eye=dict(x=1.5, y=1.5, z=1.5) # Set initial view angle
-                    )
-                )
-            )
-
-            st.plotly_chart(fig_3d, use_container_width=True)
-
-        else:
-            st.info("No forecast data available to display charts.")
-
-        st.markdown("---") 
-        
-        # --- Historical Trends Section ---
-        st.markdown("## 📈 Historical Trend (Past 7 Days)")
-
-        if df_history is not None and not df_history.empty:
-            
-            h_col1, h_col2 = st.columns(2)
-            
-            with h_col1:
-                # Combined Historical Temp for comparison
-                fig_hist_temp = px.line(df_history, x='timestamp', y=['temperature', 'heat_index'],
-                                            title="Historical Air Temp vs. Apparent Temp", markers=True)
-                
-                # Naming traces for clarity
-                fig_hist_temp.for_each_trace(lambda t: t.update(name='Apparent Temp (HI)') if t.name == 'heat_index' else t.update(name='Air Temp'))
-                fig_hist_temp.update_traces(selector=dict(name='Air Temp'), line=dict(color="#FF4560", width=4, dash='solid'))
-                fig_hist_temp.update_traces(selector=dict(name='Apparent Temp (HI)'), line=dict(color="#FFA500", width=2, dash='dot'))
-
-                fig_hist_temp.update_layout(**plot_config, yaxis_title="Temp (°C)")
-                st.plotly_chart(fig_hist_temp, use_container_width=True)
-
-            with h_col2:
-                fig_hist_hum = px.line(df_history, x='timestamp', y='humidity',
-                                            title="Historical Humidity Trend", markers=True)
-                fig_hist_hum.update_traces(line=dict(color="#00CED1", width=4, shape='spline'), mode='lines+markers') 
-                fig_hist_hum.update_layout(**plot_config, yaxis_title="Humidity (%)")
-                st.plotly_chart(fig_hist_hum, use_container_width=True)
-                
-        elif db:
-            st.info("No sufficient historical data yet. Data logging began with the first successful fetch.")
-        else:
-            st.warning("Historical data is unavailable because the Firebase database is disabled.")
-
-        st.markdown("---")
-
-        # --- Map Section ---
-        st.markdown("## 📍 Geographic Location")
-        
-        # Use the coordinates saved in the weather object
-        lat, lon = weather['lat'], weather['lon']
-        
-        map_col1, map_col2, map_col3 = st.columns([0.5, 3, 0.5])
-        
-        with map_col2:
-            m = folium.Map(location=[lat, lon], zoom_start=11, tiles="cartodbdarkmatter") 
-            
-            folium.CircleMarker(
-                [lat, lon], 
-                radius=15, 
-                color="#FF4560", 
-                fill=True,
-                fill_color="#FF4560",
-                fill_opacity=0.7,
-                popup=f"**{weather['city']}**<br>Temp: {weather['temperature']:.1f}°C"
-            ).add_to(m)
-            
-            st_folium(m, width=900, height=450)
+        # Execute display functions
+        display_current_metrics(weather, df_history, city)
+        display_forecast_charts(df_forecast, PLOTLY_CONFIG)
+        display_historical_trends(df_history, PLOTLY_CONFIG)
+        display_map(weather)
         
     else:
         st.error(f"❌ **Data Retrieval Failed:** Could not retrieve weather data for '{city.title()}'. Check API key and city name.")
