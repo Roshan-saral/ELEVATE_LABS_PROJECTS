@@ -486,7 +486,7 @@ def display_historical_trends(df_history, plot_config):
         try:
             with h_col2:
                 fig_hist_hum = px.line(df_history, x='timestamp', y='humidity',
-                                            title="Historical Humidity Trend", markers=True)
+                                            title="Historical Humidity Trend")
                 fig_hist_hum.update_traces(line=dict(color="#00CED1", width=4, shape='spline'), mode='lines+markers') 
                 # FIX 4: Apply generic config first, then update yaxis title separately
                 fig_hist_hum.update_layout(**plot_config)
