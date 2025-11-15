@@ -1,6 +1,7 @@
 altair==5.4.1
 anyio==4.5.2
 attrs==25.3.0
+plotly
 blinker==1.8.2
 branca==0.8.2
 cachecontrol==0.14.2
