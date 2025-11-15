@@ -395,7 +395,9 @@ def display_forecast_charts(df_forecast, plot_config):
             with chart_row1_col1:
                 fig_temp = px.line(df_forecast, x='dt', y='Temperature', title="5-Day Temperature Forecast", markers=True)
                 fig_temp.update_traces(line=dict(color="#FF4560", width=4, shape='spline'), mode='lines+markers') 
-                fig_temp.update_layout(**plot_config, yaxis_title="Temp (°C)")
+                # FIX 1: Apply generic config first, then update yaxis title separately
+                fig_temp.update_layout(**plot_config)
+                fig_temp.update_yaxes(title_text="Temp (°C)")
                 st.plotly_chart(fig_temp, use_container_width=True)
         except Exception as e:
             st.error(f"Error plotting Temperature Forecast: {e}")
@@ -405,7 +407,9 @@ def display_forecast_charts(df_forecast, plot_config):
             with chart_row1_col2:
                 fig_hum = px.line(df_forecast, x='dt', y='Humidity', title="5-Day Humidity Forecast", markers=True)
                 fig_hum.update_traces(line=dict(color="#4BBFE3", width=4, shape='spline'), mode='lines+markers') 
-                fig_hum.update_layout(**plot_config, yaxis_title="Humidity (%)")
+                # FIX 2: Apply generic config first, then update yaxis title separately
+                fig_hum.update_layout(**plot_config)
+                fig_hum.update_yaxes(title_text="Humidity (%)")
                 st.plotly_chart(fig_hum, use_container_width=True)
         except Exception as e:
             st.error(f"Error plotting Humidity Forecast: {e}")
@@ -471,7 +475,9 @@ def display_historical_trends(df_history, plot_config):
                 fig_hist_temp.update_traces(selector=dict(name='Air Temp'), line=dict(color="#FF4560", width=4, dash='solid'))
                 fig_hist_temp.update_traces(selector=dict(name='Apparent Temp (HI)'), line=dict(color="#FFA500", width=2, dash='dot'))
 
-                fig_hist_temp.update_layout(**plot_config, yaxis_title="Temp (°C)")
+                # FIX 3: Apply generic config first, then update yaxis title separately
+                fig_hist_temp.update_layout(**plot_config)
+                fig_hist_temp.update_yaxes(title_text="Temp (°C)")
                 st.plotly_chart(fig_hist_temp, use_container_width=True)
         except Exception as e:
             st.error(f"Error plotting Historical Temperature: {e}")
@@ -482,7 +488,9 @@ def display_historical_trends(df_history, plot_config):
                 fig_hist_hum = px.line(df_history, x='timestamp', y='humidity',
                                             title="Historical Humidity Trend", markers=True)
                 fig_hist_hum.update_traces(line=dict(color="#00CED1", width=4, shape='spline'), mode='lines+markers') 
-                fig_hist_hum.update_layout(**plot_config, yaxis_title="Humidity (%)")
+                # FIX 4: Apply generic config first, then update yaxis title separately
+                fig_hist_hum.update_layout(**plot_config)
+                fig_hist_hum.update_yaxes(title_text="Humidity (%)")
                 st.plotly_chart(fig_hist_hum, use_container_width=True)
         except Exception as e:
             st.error(f"Error plotting Historical Humidity: {e}")
