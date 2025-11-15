@@ -468,7 +468,7 @@ def display_historical_trends(df_history, plot_config):
         try:
             with h_col1:
                 fig_hist_temp = px.line(df_history, x='timestamp', y=['temperature', 'heat_index'],
-                                            title="Historical Air Temp vs. Apparent Temp", mode = 'lines+markers')
+                                            title="Historical Air Temp vs. Apparent Temp")
                 
                 # Naming traces for clarity
                 fig_hist_temp.for_each_trace(lambda t: t.update(name='Apparent Temp (HI)') if t.name == 'heat_index' else t.update(name='Air Temp'))
