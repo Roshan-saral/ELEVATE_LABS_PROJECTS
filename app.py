@@ -378,12 +378,15 @@ if city:
             with st.expander("Show 24h Trend"):
                 if df_history is not None and not df_history.empty:
                     df_24h = df_history[df_history['timestamp'] >= datetime.now(timezone.utc) - timedelta(hours=24)]
-                    fig_mini = px.line(df_24h, x='timestamp', y='temperature', 
-                                       height=200, template='plotly_dark')
-                    fig_mini.update_layout(showlegend=False, margin=dict(t=20, b=20, l=20, r=20), 
-                                           xaxis_title=None, yaxis_title=None)
-                    fig_mini.update_traces(line=dict(color="#FF4560", width=3, shape='spline'))
-                    st.plotly_chart(fig_mini, use_container_width=True, config={'displayModeBar': False})
+                    if not df_24h.empty: # <--- ADDED CHECK
+                        fig_mini = px.line(df_24h, x='timestamp', y='temperature', 
+                                           height=200, template='plotly_dark')
+                        fig_mini.update_layout(showlegend=False, margin=dict(t=20, b=20, l=20, r=20), 
+                                               xaxis_title=None, yaxis_title=None)
+                        fig_mini.update_traces(line=dict(color="#FF4560", width=3, shape='spline'))
+                        st.plotly_chart(fig_mini, use_container_width=True, config={'displayModeBar': False})
+                    else:
+                        st.caption("Not enough data points in the last 24 hours.") # <--- UPDATED CAPTION
                 else:
                     st.caption("Not enough history for 24h trend.")
 
@@ -428,7 +431,8 @@ if city:
         # Plotly Configuration: Use a single config for consistency
         plot_config = dict(xaxis_title="Date/Time (UTC)", yaxis_title="Value", hovermode="x unified", legend_title="", template='plotly_dark')
 
-        if df_forecast is not None:
+        # Check if df_forecast is valid AND not empty before plotting
+        if df_forecast is not None and not df_forecast.empty: # <--- FIX APPLIED HERE
             
             with chart_row1_col1:
                 fig_temp = px.line(df_forecast, x='dt', y='Temperature', title="5-Day Temperature Forecast", markers=True)
