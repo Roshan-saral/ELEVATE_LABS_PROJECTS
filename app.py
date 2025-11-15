@@ -649,7 +649,8 @@ if city:
         if doc.exists:
             weather = doc.to_dict()
             # Handle possible datetime conversion if stored as Firestore Timestamp object
-            if isinstance(weather["timestamp"], firebase_admin.firestore.datetime.datetime):
+            # FIX: Use the 'datetime' class imported from the standard library's datetime module
+            if isinstance(weather["timestamp"], datetime):
                 weather["timestamp"] = weather["timestamp"].astimezone(timezone.utc)
 
             time_diff = datetime.now(timezone.utc) - weather["timestamp"]
