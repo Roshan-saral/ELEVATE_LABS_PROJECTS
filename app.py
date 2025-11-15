@@ -104,17 +104,9 @@ div[data-testid="stMetric"]:nth-child(4) div[data-testid="stMetricValue"] {
 
 # ---------------- SECRETS & FIREBASE SETUP ----------------
 
-try:
-    API_KEY = st.secrets["OPENWEATHER_API_KEY"]
-except KeyError:
-    st.error("🚨 **Configuration Error:** OPENWEATHER_API_KEY not found in `secrets.toml`. Please add it for the app to function.")
-    st.stop()
-    
-try:
-    firebase_creds = st.secrets["FIREBASE"]
-except KeyError:
-    st.error("🚨 **Configuration Error:** FIREBASE secret not found. Cannot connect to Firestore for caching/history.")
-    st.stop()
+API_KEY = st.secrets["OPENWEATHER_API_KEY"]
+firebase_creds = st.secrets["FIREBASE"]
+
 
 
 @st.cache_resource
