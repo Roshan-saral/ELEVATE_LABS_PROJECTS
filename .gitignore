@@ -13,6 +13,3 @@ infra/terraform.tfstate.backup
 infra/infra
 app.yaml
 
-
-=======
->>>>>>> 855570a15359bee58dab99c21f6b3ac0de185892
