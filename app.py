@@ -6,10 +6,7 @@ from datetime import datetime, timedelta, timezone
 import folium
 from streamlit_folium import st_folium
 import math
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 855570a15359bee58dab99c21f6b3ac0de185892
+
 
 # Firebase imports (assuming these are available in your environment)
 try:
@@ -20,8 +17,7 @@ except ImportError:
     # If running outside a Firebase-configured environment, disable DB features
     FIREBASE_AVAILABLE = False
 
-<<<<<<< HEAD
-=======
+
 import os
 import time
 
@@ -37,9 +33,6 @@ except ImportError:
 # Initialize session state for DB status if not already present
 if 'db_status' not in st.session_state:
     st.session_state['db_status'] = 'Initializing...'
->>>>>>> 259442c (Update .gitignore,app.py,requirements.txt; remove README.md;add Docker setup)
-=======
->>>>>>> 855570a15359bee58dab99c21f6b3ac0de185892
 
 # ---------------- STREAMLIT PAGE CONFIG ----------------
 st.set_page_config(
@@ -48,15 +41,14 @@ st.set_page_config(
     page_icon="✨"
 )
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 # --- ENHANCED CSS V7.0: Cloud-Native/Telemetry Look ---
-=======
+
 # --- ENHANCED CSS V5.0: Neon Glow, Professional Font & Dynamic Colors ---
->>>>>>> 259442c (Update .gitignore,app.py,requirements.txt; remove README.md;add Docker setup)
+
 =======
 # --- ENHANCED CSS V7.0: Cloud-Native/Telemetry Look ---
->>>>>>> 855570a15359bee58dab99c21f6b3ac0de185892
+
 st.markdown("""
 <style>
 /* Import a modern, executive font */
