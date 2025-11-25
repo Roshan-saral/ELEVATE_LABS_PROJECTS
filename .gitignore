@@ -3,6 +3,7 @@ venv/
 __pycache__/
 *.pyc
 .DS_Store
+<<<<<<< HEAD
 infra/.terraform/
 infra/.terraform.lock.hcl
 infra/terraform.tfvars
@@ -13,3 +14,5 @@ infra/infra
 app.yaml
 
 
+=======
+>>>>>>> 855570a15359bee58dab99c21f6b3ac0de185892

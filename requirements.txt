@@ -1,16 +1,23 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 # Core Streamlit/Visualization
 >>>>>>> 259442c (Update .gitignore,app.py,requirements.txt; remove README.md;add Docker setup)
+=======
+>>>>>>> 855570a15359bee58dab99c21f6b3ac0de185892
 streamlit
 requests
 pandas
 plotly
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 855570a15359bee58dab99c21f6b3ac0de185892
 geopy
 folium
 streamlit-folium
 firebase-admin
+<<<<<<< HEAD
 =======
 folium
 streamlit-folium
@@ -21,3 +28,5 @@ firebase-admin
 # Web Server (Mandatory for App Engine Standard)(if required use it otherwise delete it not required for my major project as iam using CLOUD RUN offered by GCP)
 gunicorn
 >>>>>>> 259442c (Update .gitignore,app.py,requirements.txt; remove README.md;add Docker setup)
+=======
+>>>>>>> 855570a15359bee58dab99c21f6b3ac0de185892
