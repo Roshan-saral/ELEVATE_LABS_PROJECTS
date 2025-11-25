@@ -1,0 +1,14 @@
+# .dockerignore file content
+
+# Exclude the virtual environment folder (this addresses the error)
+venv/
+
+# Exclude Git files
+.git/
+.gitignore
+
+# Exclude any temporary or cache files
+__pycache__/
+*.pyc
+.DS_Store
+.cloudignore

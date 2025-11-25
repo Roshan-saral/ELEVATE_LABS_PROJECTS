@@ -1,0 +1,23 @@
+<<<<<<< HEAD
+=======
+# Core Streamlit/Visualization
+>>>>>>> 259442c (Update .gitignore,app.py,requirements.txt; remove README.md;add Docker setup)
+streamlit
+requests
+pandas
+plotly
+<<<<<<< HEAD
+geopy
+folium
+streamlit-folium
+firebase-admin
+=======
+folium
+streamlit-folium
+
+# Firebase (if FIREBASE_AVAILABLE is True and you configure it)
+firebase-admin
+
+# Web Server (Mandatory for App Engine Standard)(if required use it otherwise delete it not required for my major project as iam using CLOUD RUN offered by GCP)
+gunicorn
+>>>>>>> 259442c (Update .gitignore,app.py,requirements.txt; remove README.md;add Docker setup)

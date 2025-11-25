@@ -1,0 +1,15 @@
+.streamlit/secrets.toml
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/terraform.tfvars
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+.bashrc
+infra/infra
+app.yaml
+
+

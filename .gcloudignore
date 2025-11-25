@@ -1,0 +1,17 @@
+# Ignore common version control/build files
+.git
+.gitignore
+.gcloudignore
+.terraform
+.vscode/
+
+# Ignore Python environment files
+# (Assuming your virtual environment is named 'venv' or 'env')
+venv/
+env/
+__pycache__/
+*.pyc
+*.log
+
+# Ignore OS-specific temporary files
+.DS_Store
