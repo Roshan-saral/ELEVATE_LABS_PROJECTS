@@ -1,8 +1,5 @@
 # ELEVATE_LABS_PROJECTS
 PROJECT 1  :- 
-
-[live url for cloud](https://weather-dashboard-app-68f024-wdpvgdhpla-uc.a.run.app/)
-
 A live weather dashboard is an interactive application that displays real‑time weather data such as temperature, wind, rainfall, and forecasts, often updated automatically from meteorological APIs or satellite feeds.
 
 ---
